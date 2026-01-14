@@ -49,28 +49,36 @@ export const PROJECTS: Project[] = [
 
 export const WORK_EXPERIENCE: WorkExperience[] = [
   {
-    company: 'Reglazed Studio',
-    title: 'CEO',
-    start: '2024',
+    company: 'invent.ai',
+    title: 'Machine Learning Engineer',
+    start: '2025',
     end: 'Present',
-    link: 'https://ibelick.com',
+    link: 'https://www.invent.ai/',
     id: 'work1',
   },
   {
-    company: 'Freelance',
-    title: 'Design Engineer',
+    company: 'Bosch',
+    title: 'Machine Learning Engineer',
     start: '2022',
-    end: '2024',
-    link: 'https://ibelick.com',
+    end: '2025',
+    link: 'https://www.bosch.com/',
     id: 'work2',
   },
   {
-    company: 'Freelance',
-    title: 'Front-end Developer',
-    start: '2017',
-    end: 'Present',
-    link: 'https://ibelick.com',
+    company: 'AI Business School',
+    title: 'Research Intern',
+    start: '2021',
+    end: '2022',
+    link: 'https://www.aibusinessschool.com/',
     id: 'work3',
+  },
+  {
+    company: 'Global AI Hub',
+    title: 'Research Intern',
+    start: '2021',
+    end: '2022',
+    link: 'https://www.globalaihub.com/',
+    id: 'work4',
   },
 ]
 
@@ -106,20 +114,16 @@ export const BLOG_POSTS: BlogPost[] = [
 export const SOCIAL_LINKS: SocialLink[] = [
   {
     label: 'Github',
-    link: 'https://github.com/ibelick',
-  },
-  {
-    label: 'Twitter',
-    link: 'https://twitter.com/ibelick',
+    link: 'https://github.com/exactml',
   },
   {
     label: 'LinkedIn',
-    link: 'https://www.linkedin.com/in/ibelick',
+    link: 'https://www.linkedin.com/in/eslemkarakas/',
   },
   {
     label: 'Instagram',
-    link: 'https://www.instagram.com/ibelick',
+    link: 'https://www.instagram.com/eslem.karakas',
   },
 ]
 
-export const EMAIL = 'your@email.com'
+export const EMAIL = 'eslem.karakas.tr@gmail.com'
