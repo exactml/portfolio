@@ -72,8 +72,8 @@ export function Footer() {
       <div className="flex items-center justify-between">
         <div className="text-xs text-zinc-500">
           <TextLoop>
-            <span>© 2024 <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent font-semibold">Eslem Karakaş</span>.</span>
-            <span>Personal Portfolio.</span>
+            <span>© 2020 Eslem Karakaş</span>
+            <span>Personal Portfolio</span>
           </TextLoop>
         </div>
         <div className="text-xs text-zinc-400">

@@ -29,21 +29,52 @@ type SocialLink = {
 
 export const PROJECTS: Project[] = [
   {
-    name: 'Motion Primitives Pro',
+    name: 'DocBot',
     description:
-      'Advanced components and templates to craft beautiful websites.',
-    link: 'https://pro.motion-primitives.com/',
-    video:
-      'https://res.cloudinary.com/read-cv/video/upload/t_v_b/v1/1/profileItems/W2azTw5BVbMXfj7F53G92hMVIn32/newProfileItem/d898be8a-7037-4c71-af0c-8997239b050d.mp4?_a=DATAdtAAZAA0',
-    id: 'project1',
+      'Python, Docker, Slack, S3, Lambda, OpenAI, GitHub Actions (2025)\n\nDeveloped an LLM-powered chatbot for internal teams to query the codebase directly on Slack, reducing developer support requests and saving engineering time. Orchestrated AWS Lambda functions to listen to Slack channels, auto-generate documentation on new releases, and answer questions in a fully serverless manner.',
+    link: '',
+    video: '',
+    id: 'docbot',
   },
   {
-    name: 'Motion Primitives',
-    description: 'UI kit to make beautiful, animated interfaces.',
-    link: 'https://motion-primitives.com/',
-    video:
-      'https://res.cloudinary.com/read-cv/video/upload/t_v_b/v1/1/profileItems/W2azTw5BVbMXfj7F53G92hMVIn32/XSfIvT7BUWbPRXhrbLed/ee6871c9-8400-49d2-8be9-e32675eabf7e.mp4?_a=DATAdtAAZAA0',
-    id: 'project2',
+    name: 'LineGuard',
+    description:
+      'Python, Docker, FastAPI, GitHub Actions, Fargate, Lambda, Cognito, Redshift, DynamoDB (2024)\n\nBuilt a self-service predictive maintenance solution for factory users to create AI models with best-fit preprocessing and modeling techniques, requiring no technical knowledge. Developed a cost-efficient MLOps framework with retraining, user authentication, experiment tracking, and model management, as an affordable alternative to remote-hosted MLflow.',
+    link: '',
+    video: '',
+    id: 'lineguard',
+  },
+  {
+    name: 'FaultPrognosis',
+    description:
+      'Python, MLflow (2024)\n\nDeveloped a time-series forecasting model using XGBoost, with MLOps integration for model tracking and management, and AI explainability for transparent forecasting outcomes.',
+    link: '',
+    video: '',
+    id: 'faultprognosis',
+  },
+  {
+    name: 'PatternForge',
+    description:
+      'Python, Docker, Apache Kafka, S3, Redshift, Lambda, Fargate (2023)\n\nTransformed an unsupervised problem into a supervised one using rule-based labeling on big data to detect errors in refrigerator tests, informing operators via Power BI dashboard. Nominated for IDC Cooling Awards by BSH. Performed hybrid cloud migration for on-prem BSH SQL DB with a robust, secure data pipeline, doubling performance.',
+    link: '',
+    video: '',
+    id: 'patternforge',
+  },
+  {
+    name: 'BakeSpectra',
+    description:
+      'Python, Streamlit, FastAPI (2023)\n\nEnabled users to upload baked product images and create customized SVM models based on color distributions, all via a user-friendly web app for streamlined quality evaluations.',
+    link: '',
+    video: '',
+    id: 'bakespectra',
+  },
+  {
+    name: 'LeakTrack',
+    description:
+      'Python, Docker, PyTorch, Fargate, Redshift, EventBridge (2022)\n\nBuilt an autoencoder model that retrains itself regularly on the cloud to inform line operators about air leaks in machines. Rolled out to all BSH factories globally, resulting in a 10% decrease in unplanned downtime.',
+    link: '',
+    video: '',
+    id: 'leaktrack',
   },
 ]
 
@@ -57,12 +88,20 @@ export const WORK_EXPERIENCE: WorkExperience[] = [
     id: 'work1',
   },
   {
-    company: 'Bosch',
+    company: 'NTT Data',
+    title: 'Machine Learning Engineer',
+    start: '2023',
+    end: '2025',
+    link: 'https://www.nttdata.com/',
+    id: 'work2',
+  },
+  {
+    company: 'BSH Home Appliances Group',
     title: 'Machine Learning Engineer',
     start: '2022',
     end: '2025',
     link: 'https://www.bosch.com/',
-    id: 'work2',
+    id: 'work3',
   },
   {
     company: 'AI Business School',
@@ -70,7 +109,7 @@ export const WORK_EXPERIENCE: WorkExperience[] = [
     start: '2021',
     end: '2022',
     link: 'https://www.aibusinessschool.com/',
-    id: 'work3',
+    id: 'work4',
   },
   {
     company: 'Global AI Hub',
@@ -78,7 +117,7 @@ export const WORK_EXPERIENCE: WorkExperience[] = [
     start: '2020',
     end: '2021',
     link: 'https://www.globalaihub.com/',
-    id: 'work4',
+    id: 'work5',
   },
 ]
 

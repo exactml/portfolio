@@ -7,7 +7,7 @@ export function Header() {
     <header className="mb-8 flex items-center justify-between">
       <div>
         <Link href="/" className="font-medium text-black dark:text-white">
-          Eslem Karakaş
+          <span className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent font-semibold">Eslem Karakaş</span>
         </Link>
         <TextEffect
           as="p"
