@@ -75,8 +75,8 @@ export const WORK_EXPERIENCE: WorkExperience[] = [
   {
     company: 'Global AI Hub',
     title: 'Research Intern',
-    start: '2021',
-    end: '2022',
+    start: '2020',
+    end: '2021',
     link: 'https://www.globalaihub.com/',
     id: 'work4',
   },

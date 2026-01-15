@@ -137,8 +137,8 @@ export default function Personal() {
       >
         <div className="flex-1">
           <p className="text-zinc-600 dark:text-zinc-400">
-            A machine learning engineer who thinks like a data scientist,
-            builds like a software engineer.
+            I'm a machine learning engineer combining data science thinking with software engineering
+            to design and operate large-scale distributed systems.
           </p>
         </div>
       </motion.section>
