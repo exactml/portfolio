@@ -1,6 +1,7 @@
 'use client'
 import { TextEffect } from '@/components/ui/text-effect'
 import Link from 'next/link'
+import { Download } from 'lucide-react'
 
 export function Header() {
   return (
@@ -19,6 +20,13 @@ export function Header() {
           Machine Learning Engineer
         </TextEffect>
       </div>
+      <a
+        href="/eslem_karakas.pdf"
+        download="eslem_karakas.pdf"
+        className="group flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-all duration-200 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+      >
+        <Download className="h-4 w-4" />
+      </a>
     </header>
   )
 }
