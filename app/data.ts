@@ -1,11 +1,3 @@
-type Project = {
-  name: string
-  description: string
-  link: string
-  video: string
-  id: string
-}
-
 type WorkExperience = {
   company: string
   title: string
@@ -27,54 +19,56 @@ type SocialLink = {
   link: string
 }
 
-export const PROJECTS: Project[] = [
+type LibraryBook = {
+  title: string
+  author: string
+  year?: string
+  note?: string
+  id: string
+}
+
+export const LIBRARY_BOOKS: LibraryBook[] = [
   {
-    name: 'DocBot',
-    description:
-      'Python, Docker, Slack, S3, Lambda, OpenAI, GitHub Actions (2025)\n\nDeveloped an LLM-powered chatbot for internal teams to query the codebase directly on Slack, reducing developer support requests and saving engineering time. Orchestrated AWS Lambda functions to listen to Slack channels, auto-generate documentation on new releases, and answer questions in a fully serverless manner.',
-    link: '',
-    video: '',
-    id: 'docbot',
+    title: 'Designing Machine Learning Systems',
+    author: 'Chip Huyen',
+    year: '2022',
+    note: 'Practical ML systems design and production considerations.',
+    id: 'book-designing-ml-systems',
   },
   {
-    name: 'LineGuard',
-    description:
-      'Python, Docker, FastAPI, GitHub Actions, Fargate, Lambda, Cognito, Redshift, DynamoDB (2024)\n\nBuilt a self-service predictive maintenance solution for factory users to create AI models with best-fit preprocessing and modeling techniques, requiring no technical knowledge. Developed a cost-efficient MLOps framework with retraining, user authentication, experiment tracking, and model management, as an affordable alternative to remote-hosted MLflow.',
-    link: '',
-    video: '',
-    id: 'lineguard',
+    title: 'Designing Data-Intensive Applications',
+    author: 'Martin Kleppmann',
+    year: '2017',
+    note: 'Scalable systems and data infrastructure.',
+    id: 'book-ddia',
   },
   {
-    name: 'FaultPrognosis',
-    description:
-      'Python, MLflow (2024)\n\nDeveloped a time-series forecasting model using XGBoost, with MLOps integration for model tracking and management, and AI explainability for transparent forecasting outcomes.',
-    link: '',
-    video: '',
-    id: 'faultprognosis',
+    title: 'Hands-On Machine Learning with Scikit-Learn, Keras, and TensorFlow',
+    author: 'Aurélien Géron',
+    year: '2019',
+    note: 'Applied ML workflows.',
+    id: 'book-homl',
   },
   {
-    name: 'PatternForge',
-    description:
-      'Python, Docker, Apache Kafka, S3, Redshift, Lambda, Fargate (2023)\n\nTransformed an unsupervised problem into a supervised one using rule-based labeling on big data to detect errors in refrigerator tests, informing operators via Power BI dashboard. Nominated for IDC Cooling Awards by BSH. Performed hybrid cloud migration for on-prem BSH SQL DB with a robust, secure data pipeline, doubling performance.',
-    link: '',
-    video: '',
-    id: 'patternforge',
+    title: 'Fundamentals of Software Architecture',
+    author: 'Mark Richards, Neal Ford',
+    year: '2020',
+    note: 'Core principles and trade-offs in architecture.',
+    id: 'book-fundamentals-software-architecture',
   },
   {
-    name: 'BakeSpectra',
-    description:
-      'Python, Streamlit, FastAPI (2023)\n\nEnabled users to upload baked product images and create customized SVM models based on color distributions, all via a user-friendly web app for streamlined quality evaluations.',
-    link: '',
-    video: '',
-    id: 'bakespectra',
+    title: 'System Design Interview',
+    author: 'Alex Xu',
+    year: '2020',
+    note: 'Practical system design patterns and interviews.',
+    id: 'book-system-design-interview',
   },
   {
-    name: 'LeakTrack',
-    description:
-      'Python, Docker, PyTorch, Fargate, Redshift, EventBridge (2022)\n\nBuilt an autoencoder model that retrains itself regularly on the cloud to inform line operators about air leaks in machines. Rolled out to all BSH factories globally, resulting in a 10% decrease in unplanned downtime.',
-    link: '',
-    video: '',
-    id: 'leaktrack',
+    title: '37 Things One Architect Knows About IT Transformation',
+    author: 'Gregor Hohpe',
+    year: '2021',
+    note: 'Guidance for large-scale transformation.',
+    id: 'book-37-things-architect-knows',
   },
 ]
 
@@ -123,30 +117,11 @@ export const WORK_EXPERIENCE: WorkExperience[] = [
 
 export const BLOG_POSTS: BlogPost[] = [
   {
-    title: 'Exploring the Intersection of Design, AI, and Design Engineering',
-    description: 'How AI is changing the way we design',
-    link: '/blog/exploring-the-intersection-of-design-ai-and-design-engineering',
-    uid: 'blog-1',
-  },
-  {
-    title: 'Why I left my job to start my own company',
+    title: 'MLflow LCM: Experiments, Runs, and Sharing Best Practices',
     description:
-      'A deep dive into my decision to leave my job and start my own company',
-    link: '/blog/exploring-the-intersection-of-design-ai-and-design-engineering',
-    uid: 'blog-2',
-  },
-  {
-    title: 'What I learned from my first year of freelancing',
-    description:
-      'A look back at my first year of freelancing and what I learned',
-    link: '/blog/exploring-the-intersection-of-design-ai-and-design-engineering',
-    uid: 'blog-3',
-  },
-  {
-    title: 'How to Export Metadata from MDX for Next.js SEO',
-    description: 'A guide on exporting metadata from MDX files to leverage Next.js SEO features.',
-    link: '/blog/example-mdx-metadata',
-    uid: 'blog-4',
+      'Practical guidance on experiment tracking, run hygiene, and lifecycle management with MLflow.',
+    link: '/blog/mlflow-lcm-experiments',
+    uid: 'blog-mlflow-lcm',
   },
 ]
 

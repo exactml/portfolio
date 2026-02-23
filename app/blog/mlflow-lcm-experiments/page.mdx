@@ -1,0 +1,49 @@
+# MLflow LCM: Experiments, Runs, and Sharing Best Practices
+
+MLflow helps keep machine learning work reproducible and shareable. This short note is a living checklist for MLflow lifecycle management (LCM) practices around experiments and runs. I’ll expand it later.
+
+## 1) Set a clear experiment structure
+
+- Use one experiment per product line, use case, or team.
+- Keep names stable and descriptive (e.g., `fraud-detection-v2`).
+- Document the experiment purpose in the experiment description.
+
+## 2) Make run metadata consistent
+
+- Log parameters, metrics, and tags for every run.
+- Add tags for `owner`, `dataset`, `model_family`, and `stage` (dev/staging/prod).
+- Track code version (`git_commit`) and data version (`data_snapshot_id`).
+
+## 3) Log artifacts that matter
+
+- Save configs, feature schemas, and evaluation reports as artifacts.
+- Store plots that explain behavior (e.g., calibration, confusion matrices).
+- Keep artifacts lightweight and well-structured by folder.
+
+## 4) Create reproducible runs
+
+- Avoid hidden randomness; set and log seeds.
+- Log environment details (library versions, hardware, and runtime).
+- Keep a short “run summary” note for quick scanning.
+
+## 5) Use models and stages intentionally
+
+- Register only candidate models that meet your baseline.
+- Promote via stages, not ad hoc naming.
+- Keep a short rationale when transitioning stages.
+
+## 6) Share runs for collaboration
+
+- Link a run to a task or PR.
+- Use a “golden run” tag to highlight the reference baseline.
+- Share dashboards for experiment comparison, not single runs.
+
+## 7) Set lightweight governance
+
+- Define minimum logging requirements for every run.
+- Standardize naming for key metrics.
+- Keep a small template for experiment setup.
+
+## TL;DR
+
+Good MLflow LCM is about consistency: structured experiments, clean run metadata, and artifacts that tell a story. That makes collaboration easier, comparisons meaningful, and deployments safer.
