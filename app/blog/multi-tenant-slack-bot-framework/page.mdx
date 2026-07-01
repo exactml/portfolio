@@ -1,0 +1,159 @@
+export const metadata = {
+  title: 'One Codebase, Many Bots: Designing a Multi-Tenant Slack Assistant Framework',
+  description:
+    'How I built a team-agnostic framework for spinning up domain-specific Slack Q&A bots — one codebase, one deployment pattern, a config file per bot.',
+  authors: [{ name: 'Eslem Karakas' }],
+}
+
+# One Codebase, Many Bots: Designing a Multi-Tenant Slack Assistant Framework
+
+Every team eventually wants the same thing: a Slack bot that can answer questions about *their* corner of the world. "How do we configure the pipeline for this customer?" "Where's the onboarding doc?" "What changed in the ingestion job last week?" The knowledge exists — it's just scattered across a wiki, a dozen repos, and people's heads.
+
+The trap is that each team builds this bot from scratch, and each one re-implements the exact same plumbing before it ever gets to the interesting part. I built a framework to make that plumbing free: **one codebase, one deployment pattern, and a single config file to stand up a new bot.** This post is about the engineering decisions behind it.
+
+## The motivation: everyone rewrites the same boilerplate
+
+Strip a "smart" Slack Q&A bot down to its parts and most of it has nothing to do with the domain the bot is supposed to know about:
+
+- Slack transport — Socket Mode / webhook handling, signature verification
+- Fetching thread history and posting replies
+- LLM client plumbing and prompt assembly
+- Secret management (a secrets store in prod, something local in dev)
+- Event deduplication — Slack **retries** the same event when you're slow
+- Filtering — ignore edits, deletes, other bots, unrelated channels
+- Docker packaging, CI/CD, and deployment
+
+That's the 90% every team writes and rewrites. The actual differentiator — *what this bot knows and how it should sound* — is the small remainder.
+
+So I inverted the ownership. The framework owns all of the boilerplate. A team that wants a bot writes only:
+
+1. A **`bot.yaml`** describing identity, Slack channels, and required secrets.
+2. A **context provider** — a small class that knows how to fetch that team's docs/code.
+3. Two Markdown prompt files — a **persona** for answering and a **routing guide** for classifying questions.
+
+That's the whole surface area. Everything else is handled.
+
+## Three design decisions that shaped everything
+
+### 1. One container per bot
+
+Each bot is its own container image and its own deployed service. They share a codebase but never share a process.
+
+This costs a little more infrastructure, but it buys three things I wasn't willing to give up:
+
+- **Small blast radius** — a bug in one team's bot can't take down another's.
+- **Independent lifecycle** — each bot scales, logs, and deploys on its own schedule.
+- **Clean isolation** — one bot's noisy dependency or memory leak stays contained.
+
+Multi-tenancy at the *codebase* level, single-tenancy at the *runtime* level. You get the maintenance win of one shared framework without the operational fragility of one shared process.
+
+### 2. Outbound-only networking with Socket Mode
+
+The bots never accept an inbound HTTP request from the public internet. Instead of exposing an endpoint for Slack to call, each bot dials *out* to Slack and holds a persistent WebSocket (Slack calls this Socket Mode).
+
+The security and ops savings are the whole point:
+
+- No load balancer, no public DNS record, no TLS certificate to manage.
+- No request-signature verification to implement and get subtly wrong.
+- Nothing listening on the internet to be scanned or attacked.
+
+The connection is authenticated by an app-level token, and Slack terminates TLS on their side. For an internal tool this is close to free security — the smallest attack surface is the one that doesn't exist.
+
+### 3. A two-step LLM pipeline: route, then answer
+
+The naive approach is to shove everything the bot might know into one giant prompt and ask for an answer. That's slow, expensive, and worse — a bloated context *dilutes* the model's attention and the answers get vaguer.
+
+Instead I split the work across two model calls:
+
+- **Route** — a small, fast, cheap model first decides *what kind* of question this is and which parts of the domain are relevant. It returns structured JSON, not prose.
+- **Answer** — a larger model then generates the actual reply, but only sees the *targeted* context the routing step pointed at.
+
+The routing model is a classifier that happens to be an LLM. It's doing cheap triage so the expensive model does less, sees less, and answers better. Cost drops, latency drops, and answer quality goes *up* because the context is focused.
+
+## How a question becomes an answer
+
+Here's one Slack mention, end to end:
+
+```
+@ask-platform-bot how do I configure the pipeline for customer X?
+```
+
+1. **Slack delivers the event** over the WebSocket the bot opened at startup.
+2. **The bot acknowledges within ~3 seconds** — and this matters more than it looks. Slack requires an ack fast, but generating an answer takes 10–30 seconds. So the handler `ack()`s immediately and hands the real work to a **background thread**. Miss the ack window and Slack assumes failure and *retries* — which is exactly why the next step exists.
+3. **Deduplicate** by event ID. Because Slack retries on slow responses, the same logical event can arrive several times. A TTL cache remembers each event ID for an hour and drops repeats.
+4. **Filter** out anything that isn't a real question: edits, deletes, bot messages, messages from channels the bot doesn't serve, messages that don't actually mention it.
+5. **Fetch the full thread**, so the model sees the whole conversation and not just the last line.
+6. **Route** — the fast model reads a team-authored routing guide plus the thread and returns JSON like `{"category": "configuration", "search_terms": [...]}`.
+7. **Extract** — that JSON goes to the team's context provider, which turns it into concrete context: specific wiki pages, specific files in specific repos, specific config keys.
+8. **Answer** — the larger model gets the team's persona prompt, the thread, and the extracted context, and writes the reply.
+9. **Post** the reply back into the Slack thread.
+
+The path *through the framework* is around 150 lines. Almost all the interesting, bot-specific work lives in steps 6 and 7 — everything around them is provided.
+
+## Configuration as the contract
+
+A bot is defined by a YAML file that's parsed into a typed, validated object at startup. If a field is missing or the wrong type, the bot **fails loudly at boot** rather than misbehaving at 2am.
+
+```yaml
+bot_name: platform
+display_name: ask-platform-bot
+
+slack:
+  channels:
+    - id: C0XXXXXXX
+      name: ask-platform
+      env: prod            # gates which channels a deployment answers in
+
+secrets:
+  secret_name: chatbots/platform   # empty => fall back to env vars (local dev)
+  region_name: eu-west-1
+  required_keys:                    # bot refuses to start if any are missing
+    - slack_bot_token
+    - slack_app_token
+    - llm_api_key
+    - wiki_token
+
+models:
+  route:                            # fast/cheap triage model
+    name: <small-model>
+    max_tokens: 256
+  answer:                           # full answer model
+    name: <larger-model>
+    max_tokens: 2048
+
+context:
+  provider_class: platform.context_provider.PlatformContextProvider
+  max_context_chars: 30000          # hard cap on context sent to the answer model
+```
+
+Making the config the contract has a nice property: the schema *is* the documentation. A new team reads one annotated file and knows every knob that exists. Validation at startup means the failure mode is "won't boot with a clear message," never "boots and quietly does the wrong thing."
+
+## The extension point: a context provider
+
+The one piece of real code a team writes is a context provider — a small class with three methods:
+
+- `build(secrets)` — one-time setup (clone repos, build an index). It runs in a **background thread** so a slow build never blocks startup; if it fails, the bot degrades instead of refusing to come up.
+- `get_routing_guide()` — text describing the shape of the domain, used by the routing model to classify questions.
+- `extract(route_result, query)` — given the routing JSON and the question, return the relevant context as a string.
+
+This is the classic pattern: a stable framework with a narrow, well-defined seam for the variable part. The framework never needs to know whether the context comes from a wiki, a set of git repos, or a database — only that `extract` returns a string. Teams can be arbitrarily clever behind that method without touching the core.
+
+## Operational details that earn their keep
+
+A few small decisions did outsized work in production:
+
+- **Secrets with a graceful fallback.** In production, secrets come from a managed secrets store, keyed by the name in `bot.yaml`. Locally, leaving that name empty makes the loader read the same keys from environment variables instead. Both paths run through *one* validation routine, so a missing key fails identically in either mode — no "works locally, breaks in prod" surprises.
+- **Dedup is not optional.** The single most important reliability fix was the dedup cache. Without it, a slow answer causes Slack to retry, and users get the same reply two or three times. It's a handful of lines that turns a flaky experience into a solid one.
+- **Ack fast, work slow.** Separating the acknowledgement from the work is what makes the whole thing feel responsive without lying about being done. It's the same lesson as any webhook system: acknowledge receipt immediately, do the heavy lifting off the critical path.
+
+## Takeaways
+
+The framework is specific, but most of the lessons aren't:
+
+- **Find the boilerplate everyone rewrites and own it once.** The leverage in a platform isn't doing something clever — it's making the boring 90% disappear so teams only write the 10% that's actually theirs.
+- **Make the config the contract.** A typed, validated, well-commented config file is documentation, onboarding, and a guardrail all at once. Fail loudly at startup, never silently at runtime.
+- **Cascade your models.** A cheap model doing triage in front of an expensive model isn't just cheaper — it's usually *better*, because focused context beats a big pile of maybe-relevant text.
+- **Isolate at the runtime, share at the source.** One codebase keeps maintenance cheap; one process per tenant keeps failures contained. You can have both.
+- **The unglamorous reliability details matter most.** Dedup, fast acks, graceful secret fallbacks — none of it is exciting, and all of it is the difference between a demo and something people actually trust.
+
+The best internal tools are the ones that get *boring* to create. When standing up a new bot is "write a YAML file and one small class," teams stop asking whether it's worth it and just build the thing.

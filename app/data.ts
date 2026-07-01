@@ -117,6 +117,13 @@ export const WORK_EXPERIENCE: WorkExperience[] = [
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    title: 'One Codebase, Many Bots: Designing a Multi-Tenant Slack Assistant Framework',
+    description:
+      'How I built a team-agnostic framework for spinning up domain-specific Slack Q&A bots — one codebase, one deployment pattern, a config file per bot.',
+    link: '/blog/multi-tenant-slack-bot-framework',
+    uid: 'blog-multi-tenant-slack-bot-framework',
+  },
+  {
     title: 'MLflow LCM: Experiments, Runs, and Sharing Best Practices',
     description:
       'Practical guidance on experiment tracking, run hygiene, and lifecycle management with MLflow.',
