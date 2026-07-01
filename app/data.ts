@@ -82,14 +82,6 @@ export const WORK_EXPERIENCE: WorkExperience[] = [
     id: 'work1',
   },
   {
-    company: 'NTT Data',
-    title: 'Machine Learning Engineer',
-    start: '2023',
-    end: '2025',
-    link: 'https://www.nttdata.com/',
-    id: 'work2',
-  },
-  {
     company: 'BSH Home Appliances Group',
     title: 'Machine Learning Engineer',
     start: '2022',
