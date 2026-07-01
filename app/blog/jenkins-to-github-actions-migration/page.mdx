@@ -1,0 +1,144 @@
+export const metadata = {
+  title: 'Retiring 375 Lines of Jenkins: Migrating a Monorepo to GitHub Actions',
+  description:
+    'How I replaced a monolithic Jenkins pipeline with event-driven GitHub Actions — content-addressed image caching, a CI→CD security gate, and ~500–780 hours/year of pipeline time reclaimed.',
+  authors: [{ name: 'Eslem Karakas' }],
+}
+
+# Retiring 375 Lines of Jenkins: Migrating a Monorepo to GitHub Actions
+
+The CI/CD pipeline for one of our Python monorepos had grown into a single 375-line `Jenkinsfile` — plus a second Jenkins file for releases and a bespoke Dockerfile for the release agent. It worked, but every change to it was a small act of courage, and every developer paid a tax on every push. I migrated the whole thing to GitHub Actions. This post is about *why* the old shape hurt, *what* the new one does differently, and the concrete time it gave back.
+
+## The starting point: one big pipeline and a polling loop
+
+The monorepo ships two packages — a forecasting core and an orchestration plugin — so the pipeline had a lot to do: lint, unit tests, several integration suites, docs generation, and publishing for both packages. The Jenkins setup had a few structural problems that compounded each other:
+
+- **It polled for work.** The pipeline was triggered by `pollSCM('H/5 * * * *')` — Jenkins woke up every five minutes and asked the repo whether anything had changed. In the worst case you pushed and then waited up to five minutes for the build to even *start*.
+- **CI and CD lived in one file.** A single pipeline ran everything, with a giant comma-separated `STAGES_TO_RUN` parameter to toggle stages on and off. Deploy was just another stage in the same run, which meant publishing credentials were in scope for the entire pipeline.
+- **The CI image was rebuilt every run.** Each run built its Docker image from the `Dockerfile` before it could do anything useful — even when nothing about the image had changed.
+- **It ran on self-hosted executors** that someone had to keep alive, patched, and unclogged.
+
+None of these are dramatic on their own. Together they meant slow feedback, risky edits, and a standing maintenance cost.
+
+## The redesign
+
+I didn't port the `Jenkinsfile` one-to-one. I re-modeled the pipeline around a few principles that GitHub Actions makes cheap.
+
+### Event-driven, not polling
+
+The new pipeline triggers on `push`. There's no polling loop and no up-to-five-minute dead zone — a push starts a run immediately. On top of that:
+
+```yaml
+on:
+  push:
+    branches: [main, '*-*', '*/*']
+    paths-ignore:
+      - "**/*.md"
+      - "**/*.txt"
+      - "**/*.rst"
+```
+
+`paths-ignore` means a docs-only or comment-only commit doesn't burn a full pipeline. And a `concurrency` group cancels superseded runs on feature branches, so pushing three times in a row no longer leaves two doomed builds grinding away:
+
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+```
+
+### Content-addressed CI image: build once, reuse forever
+
+This was the single biggest wall-clock win. Instead of rebuilding the image every run, the pipeline derives a **deterministic tag** from the things that actually affect the image — the `Dockerfile` and the dependency manifest — and only builds if that exact tag isn't already in the registry:
+
+```yaml
+- name: Compute image tag
+  run: |
+    DOCKERFILE_HASH=$(sha256sum Dockerfile | awk '{print substr($1,1,8)}')
+    DEPS_HASH=$(sha256sum pyproject.toml | sha256sum | awk '{print substr($1,1,8)}')
+    echo "image_tag=${DOCKERFILE_HASH}-${DEPS_HASH}" >> "$GITHUB_OUTPUT"
+
+- name: Check if image already exists
+  run: |
+    if docker manifest inspect "$CI_IMAGE:$TAG" > /dev/null 2>&1; then
+      echo "exists=true" >> "$GITHUB_OUTPUT"   # skip the build entirely
+    fi
+```
+
+If you didn't touch the Dockerfile or the dependencies, the image is already there and the build step is skipped. When it *does* build, a registry-backed BuildKit cache (`cache-from`/`cache-to`) keeps even that fast. The image is the expensive artifact — so cache it on its real identity, not on a branch name or a timestamp.
+
+### Split CI from CD, and gate the gap
+
+CI and CD are now two workflows. CD is triggered *only* by CI completing, via `workflow_run`, and every publish job is gated on both the branch and the CI result:
+
+```yaml
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success'
+```
+
+This gate does three things at once:
+
+1. **CD never runs unless CI passed** — no "tests failed but a broken wheel still shipped."
+2. **Publish credentials never reach feature-branch code.** In the old single-pipeline design, deploy secrets were in scope everywhere; now they only exist in a workflow that can't be triggered from a PR branch.
+3. **The deploy only ever checks out a reviewed `main` commit.** Combined with least-privilege `permissions: contents: read`, the privileged half of the pipeline has a much smaller surface.
+
+### Parallelize with matrices instead of copy-paste
+
+The integration suites and the plugin's lint/test/build stages became matrix jobs instead of hand-duplicated stages:
+
+```yaml
+integration-tests:
+  strategy:
+    fail-fast: false
+    matrix:
+      suite: [delta, bootstrap, tags]
+```
+
+Same coverage, a fraction of the YAML, and every suite runs in parallel and reports independently (`fail-fast: false`) so one failure doesn't hide the others.
+
+### Reusable workflows so releases can't drift
+
+Publishing a wheel and refreshing the package server are extracted into reusable workflows (`_publish-wheel.yml`, `_refresh-pypi.yml`). Both the continuous-deploy path and the tag-triggered release path call the *same* building blocks, so the two can't quietly diverge — a class of "it works on main but the release is different" bug simply can't happen anymore.
+
+## What it gave back
+
+Using our real numbers — average pipeline duration dropped from **~1.5 hours to ~1 hour**, at **20–30 CI runs per week**, for a team of **5 engineers**:
+
+| Metric | Before (Jenkins) | After (GitHub Actions) |
+| --- | --- | --- |
+| Avg. pipeline duration | ~1.5 h | ~1 h (**−33%**) |
+| Time to first feedback | up to +5 min (SCM poll) | immediate (on push) |
+| CI image rebuild | ~15 min, every run | skipped when unchanged |
+| Docs-only commits | full pipeline | skipped (`paths-ignore`) |
+| Infra to maintain | self-hosted Jenkins + executors | managed workflows + runners |
+
+The headline is **30 minutes saved per run**. Roughly half of that comes from no longer rebuilding the CI image on every run; the rest from parallel matrices and event-driven scheduling. Doing the arithmetic:
+
+> **0.5 h/run × 20–30 runs/week ≈ 10–15 hours/week** of pipeline time reclaimed
+> ≈ **~500–780 hours/year**.
+
+That's before counting the softer wins: feedback that arrives on push instead of up to five minutes later, superseded runs that cancel themselves, and a whole class of Jenkins executor babysitting that no longer exists. For a team of five pushing all day, shorter and earlier feedback compounds in a way the table doesn't fully capture.
+
+### Why ~1 hour is the floor, not the failure
+
+It's worth being clear that the goal was never to make this pipeline *trivially* fast — because a large share of that hour is real, irreducible work. This is a data product whose correctness depends on distributed **PySpark** transformations, and the integration suites (`delta`, `bootstrap`, `tags`) actually spin up Spark and run those computations end to end against realistic data. That's a business requirement, not overhead: if the pipeline doesn't exercise the real distributed calculation path, it isn't testing the thing that can actually break in production.
+
+So the compute floor is fixed by *what the product does*, and the win came from everything *around* that floor — not rebuilding the image every run, not polling, not re-running on docs-only commits, not leaving superseded builds alive. Parallelizing the Spark suites into a matrix shortens the wall-clock, but you can't parallelize away work that genuinely has to happen. The honest framing is: an hour of that pipeline is mostly real Spark execution earning its keep, and the migration removed the half-hour of ceremony that wasn't.
+
+## Takeaways
+
+- **Event-driven beats polling.** A five-minute poll interval is five minutes of latency on every change and a pile of no-op wake-ups. If your CI still polls, that's free latency to delete.
+- **Cache the expensive artifact on its real identity.** Tagging the CI image by a hash of the `Dockerfile` and dependencies — and skipping the build when that tag exists — turned a 15-minute step into a no-op most of the time. Cache by *what actually changed*, not by branch or time.
+- **Split privileged steps behind a gate.** Separating CD from CI and gating it on branch + CI-success shrank the blast radius of publishing credentials to almost nothing. Deploy secrets should never be in scope for code a PR author controls.
+- **Make duplication impossible, not just discouraged.** Matrices killed the copy-pasted stages; reusable workflows made the release path and the deploy path physically share code so they can't drift.
+- **Measure the boring win.** "It feels faster" is unconvincing. "~500–780 hours of pipeline time a year, here's the math" is the version that justifies the migration and the next one.
+
+Deleting 375 lines of pipeline that everyone was slightly afraid to touch was satisfying on its own. Getting hundreds of hours back every year — and a smaller security surface for free — is the part that made it worth doing.

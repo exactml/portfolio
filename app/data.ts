@@ -117,6 +117,13 @@ export const WORK_EXPERIENCE: WorkExperience[] = [
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    title: 'Retiring 375 Lines of Jenkins: Migrating a Monorepo to GitHub Actions',
+    description:
+      'Replacing a monolithic Jenkins pipeline with event-driven GitHub Actions — content-addressed image caching, a CI→CD security gate, and ~500–780 hours/year of pipeline time reclaimed.',
+    link: '/blog/jenkins-to-github-actions-migration',
+    uid: 'blog-jenkins-to-github-actions-migration',
+  },
+  {
     title: 'One Codebase, Many Bots: Designing a Multi-Tenant Slack Assistant Framework',
     description:
       'How I built a team-agnostic framework for spinning up domain-specific Slack Q&A bots — one codebase, one deployment pattern, a config file per bot.',
